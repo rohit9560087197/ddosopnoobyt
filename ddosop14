@@ -1,0 +1,152 @@
+import tkinter as tk
+from tkinter import ttk, scrolledtext, messagebox
+from mcpi.minecraft import Minecraft
+import threading
+import time
+
+# Global variables
+mc = None
+running = False
+boats_joined = 0
+server_ip = ""
+server_port = 0
+bots_limit = 0
+delay_time = 0
+
+# List to store IP addresses of Minecraft servers to join
+servers_to_join = [
+    '185.245.38.200:4145',
+    '37.57.38.133:10801',
+    '213.184.224.82:5678',
+    '37.57.70.167:5678',
+    '188.94.207.201:5678',
+    '185.132.1.136:5678',
+    '66.181.164.125:5678',
+    '43.242.242.140:5678',
+    '43.228.131.51:5678',
+    '195.242.138.20:5678'
+]
+
+# Function to append messages to the status text widget
+def append_to_status(message):
+    status_text.configure(state='normal')
+    status_text.insert(tk.END, message + "\n")
+    status_text.configure(state='disabled')
+    status_text.see(tk.END)  # Scroll to the end
+
+# Function to update status label with real-time information
+def update_status_label():
+    global boats_joined, bots_limit
+    status_var.set(f"Bots joined: {boats_joined}/{bots_limit}")
+    root.after(1000, update_status_label)  # Update every 1 second
+
+# Function to update progress bar
+def update_progress_bar():
+    global boats_joined, bots_limit
+    progress_bar["value"] = boats_joined * 100 / bots_limit
+    root.after(1000, update_progress_bar)  # Update every 1 second
+
+# Function to join a single server
+def join_server(ip_port):
+    global boats_joined
+    try:
+        if ':' in ip_port:
+            ip, port = ip_port.split(":", 1)
+        else:
+            raise ValueError(f"Invalid format for IP and port: {ip_port}")
+
+        mc = connect_to_minecraft(ip, port)
+        if mc is not None:
+            # Implement your bot logic here
+            time.sleep(5)  # Simulating connection time
+            mc.conn.close()  # Close the connection
+            boats_joined += 1
+            append_to_status(f"Joined server {ip}:{port}")
+    except Exception as e:
+        append_to_status(f"Error joining server {ip_port}: {e}")
+
+# Function to start joining servers
+def start_joining_servers():
+    global running, boats_joined
+    running = True
+    for server in servers_to_join:
+        if not running:
+            break
+        join_server(server)
+        time.sleep(delay_time)  # Delay between joining servers
+    running = False
+
+# Function to stop joining servers
+def stop_joining():
+    global running
+    running = False
+    stop_screen.destroy()  # Close the stop screen
+    create_initial_screen()  # Go back to the initial setup screen
+
+# Function to show the stop screen
+def show_stop_screen():
+    global stop_screen
+    stop_screen = tk.Toplevel()
+    stop_screen.title("Stop Joining Servers")
+
+    stop_label = tk.Label(stop_screen, text="Server joining in progress.")
+    stop_label.pack(padx=10, pady=10)
+
+    stop_button = tk.Button(stop_screen, text="Stop Joining", width=15, command=stop_joining)
+    stop_button.pack(pady=10)
+
+# Function to connect to Minecraft
+def connect_to_minecraft(ip, port):
+    global mc
+    try:
+        mc = Minecraft.create(ip, int(port))
+        append_to_status(f"Connected to Minecraft server at {ip}:{port}")
+        return mc  # Return the Minecraft object
+    except Exception as e:
+        error_msg = f"Failed to connect to Minecraft server at {ip}:{port}: {e}"
+        messagebox.showerror("Error", error_msg)
+        append_to_status(error_msg)
+        return None  # Return None if connection fails
+
+# Function to start the main script
+def start_script():
+    global bots_limit, delay_time, boats_joined
+
+    # Create main window
+    global root
+    root = tk.Tk()
+    root.title("Minecraft Server Joiner")
+
+    # Progress bar to show joining progress
+    global progress_bar
+    progress_bar = ttk.Progressbar(root, orient=tk.HORIZONTAL, length=300, mode='determinate')
+    progress_bar.pack(padx=10, pady=10)
+
+    # Status label to show current status
+    global status_var
+    status_var = tk.StringVar()
+    status_label = tk.Label(root, textvariable=status_var)
+    status_label.pack()
+
+    # Text area for status updates
+    global status_text
+    status_text = scrolledtext.ScrolledText(root, width=60, height=10, wrap=tk.WORD)
+    status_text.pack(padx=10, pady=10)
+    status_text.configure(state='disabled')  # Make it read-only
+
+    # Start joining servers
+    threading.Thread(target=start_joining_servers).start()
+
+    # Update status label and progress bar
+    update_status_label()
+    update_progress_bar()
+
+    root.mainloop()
+
+# Main function to handle command-line execution
+def main():
+    start_script()
+
+# Check if the script is run as main module
+if __name__ == "__main__":
+    main()
