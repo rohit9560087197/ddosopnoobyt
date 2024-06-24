@@ -41,6 +41,19 @@ def manual_ip_entry():
     else:
         messagebox.showwarning("Warning", "Please enter an IP address.")
 
+# Function to handle uploading IP addresses from a file
+def upload_ip_file():
+    try:
+        file_path = filedialog.askopenfilename(filetypes=[("Text files", "*.txt")])
+        if file_path:
+            ips = read_ips_from_file(file_path)
+            servers_to_join.extend(ips)
+            append_to_status(f"Uploaded {len(ips)} IP addresses from {file_path}")
+    except Exception as e:
+        error_msg = f"Error uploading file: {e}"
+        messagebox.showerror("Error", error_msg)
+        append_to_status(error_msg)
+
 # Function to connect to Minecraft
 def connect_to_minecraft(ip, port):
     global mc
