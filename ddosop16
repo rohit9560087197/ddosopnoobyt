@@ -13,19 +13,8 @@ server_port = 0
 bots_limit = 10  # Example value, should be set based on your use case
 delay_time = 2.0  # Example value, should be set based on your use case
 
-# List to store IP addresses of Minecraft servers to join
-servers_to_join = [
-    '185.245.38.200:4145',
-    '37.57.38.133:10801',
-    '213.184.224.82:5678',
-    '37.57.70.167:5678',
-    '188.94.207.201:5678',
-    '185.132.1.136:5678',
-    '66.181.164.125:5678',
-    '43.242.242.140:5678',
-    '43.228.131.51:5678',
-    '195.242.138.20:5678'
-]
+# List to store IP addresses of Minecraft servers to join (initially empty)
+servers_to_join = []
 
 # Function to append messages to the status text widget
 def append_to_status(message):
@@ -48,14 +37,9 @@ def update_progress_bar():
     root.after(1000, update_progress_bar)  # Update every 1 second
 
 # Function to join a single server
-def join_server(ip_port):
+def join_server(ip, port):
     global boats_joined
     try:
-        if ':' in ip_port:
-            ip, port = ip_port.split(":", 1)
-        else:
-            raise ValueError(f"Invalid format for IP and port: {ip_port}")
-
         mc = connect_to_minecraft(ip, port)
         if mc is not None:
             # Implement your bot logic here
@@ -64,7 +48,7 @@ def join_server(ip_port):
             boats_joined += 1
             append_to_status(f"Joined server {ip}:{port}")
     except Exception as e:
-        append_to_status(f"Error joining server {ip_port}: {e}")
+        append_to_status(f"Error joining server {ip}:{port}: {e}")
 
 # Function to start joining servers
 def start_joining_servers():
@@ -73,7 +57,7 @@ def start_joining_servers():
     for server in servers_to_join:
         if not running:
             break
-        join_server(server)
+        join_server(server["ip"], server["port"])
         time.sleep(delay_time)  # Delay between joining servers
     running = False
 
@@ -108,6 +92,70 @@ def connect_to_minecraft(ip, port):
         messagebox.showerror("Error", error_msg)
         append_to_status(error_msg)
         return None  # Return None if connection fails
+
+# Function to handle Start button click
+def handle_start():
+    global server_ip, server_port, bots_limit, boats_joined
+
+    # Validate input
+    ip = ip_entry.get()
+    port = port_entry.get()
+    limit = limit_entry.get()
+
+    if not ip or not port or not limit:
+        messagebox.showerror("Error", "Please enter IP, Port, and Bot Limit.")
+        return
+
+    # Convert port and limit to integers
+    try:
+        port = int(port)
+        limit = int(limit)
+    except ValueError:
+        messagebox.showerror("Error", "Port and Limit must be integers.")
+        return
+
+    # Set global variables
+    server_ip = ip
+    server_port = port
+    bots_limit = limit
+
+    # Append server to join to list
+    servers_to_join.append({"ip": server_ip, "port": server_port})
+
+    # Start script
+    threading.Thread(target=start_script).start()
+
+# Function to create initial setup screen
+def create_initial_screen():
+    global root, ip_entry, port_entry, limit_entry
+
+    # Create main window
+    root = tk.Tk()
+    root.title("Minecraft Server Joiner - Setup")
+
+    # IP Entry
+    ip_label = tk.Label(root, text="Server IP:")
+    ip_label.pack(pady=5)
+    ip_entry = tk.Entry(root, width=30)
+    ip_entry.pack()
+
+    # Port Entry
+    port_label = tk.Label(root, text="Server Port:")
+    port_label.pack(pady=5)
+    port_entry = tk.Entry(root, width=30)
+    port_entry.pack()
+
+    # Bot Limit Entry
+    limit_label = tk.Label(root, text="Bot Limit:")
+    limit_label.pack(pady=5)
+    limit_entry = tk.Entry(root, width=30)
+    limit_entry.pack()
+
+    # Start Button
+    start_button = tk.Button(root, text="Start Joining", width=15, command=handle_start)
+    start_button.pack(pady=10)
+
+    root.mainloop()
 
 # Function to start the main script
 def start_script():
@@ -146,7 +194,7 @@ def start_script():
 
 # Main function to handle command-line execution
 def main():
-    start_script()
+    create_initial_screen()
 
 # Check if the script is run as main module
 if __name__ == "__main__":
