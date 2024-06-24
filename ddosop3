@@ -1,6 +1,6 @@
 import argparse
 import tkinter as tk
-from tkinter import simpledialog, messagebox
+from tkinter import simpledialog, messagebox, scrolledtext
 from mcpi.minecraft import Minecraft
 import time
 import threading
@@ -18,47 +18,57 @@ def generate_random_name():
     return ''.join(random.choices(string.ascii_letters + string.digits, k=8))
 
 # Function to connect to Minecraft using a specific IP address
-def connect_to_minecraft(ip, port):
+def connect_to_minecraft(ip, port, status_text):
     global mc
     try:
         mc = Minecraft.create(ip, port)
-        messagebox.showinfo("Info", f"Connected to Minecraft server at {ip}:{port}")
+        status_text.insert(tk.END, f"Connected to Minecraft server at {ip}:{port}\n")
     except Exception as e:
+        status_text.insert(tk.END, f"Failed to connect to Minecraft server at {ip}:{port}: {e}\n")
         messagebox.showerror("Error", f"Failed to connect to Minecraft server at {ip}:{port}: {e}")
 
 # Function to find boats
 def find_boats():
-    entities = mc.getEntities()
-    boats = [entity for entity in entities if entity["type"] == "Boat"]
-    return boats
+    try:
+        entities = mc.getEntities()
+        boats = [entity for entity in entities if entity["type"] == "Boat"]
+        return boats
+    except Exception as e:
+        print(f"Error finding boats: {e}")
+        return []
 
 # Function to join boats and rename them
-def join_boats(boat1, boat2):
+def join_boats(boat1, boat2, status_text):
     global boats_joined
-    x1, y1, z1 = boat1["pos"]["x"], boat1["pos"]["y"], boat1["pos"]["z"]
-    x2, y2, z2 = boat2["pos"]["x"], boat2["pos"]["y"], boat2["pos"]["z"]
+    try:
+        x1, y1, z1 = boat1["pos"]["x"], boat1["pos"]["y"], boat1["pos"]["z"]
+        x2, y2, z2 = boat2["pos"]["x"], boat2["pos"]["y"], boat2["pos"]["z"]
 
-    # Teleport boat1 to boat2 position
-    mc.entity.setPos(boat1["id"], x2, y2, z2)
-    
-    # Rename the boats with random names
-    random_name1 = generate_random_name()
-    random_name2 = generate_random_name()
-    mc.entity.setCustomName(boat1["id"], random_name1)
-    mc.entity.setCustomName(boat2["id"], random_name2)
-    
-    boats_joined += 1
+        # Teleport boat1 to boat2 position
+        mc.entity.setPos(boat1["id"], x2, y2, z2)
+        
+        # Rename the boats with random names
+        random_name1 = generate_random_name()
+        random_name2 = generate_random_name()
+        mc.entity.setCustomName(boat1["id"], random_name1)
+        mc.entity.setCustomName(boat2["id"], random_name2)
+        
+        boats_joined += 1
+        status_text.insert(tk.END, f"Joined boats: {boats_joined}\n")
+    except Exception as e:
+        status_text.insert(tk.END, f"Error joining boats: {e}\n")
+        print(f"Error joining boats: {e}")
 
 # Function to run the boat joining logic
-def run_boat_joining(delay_time):
+def run_boat_joining(delay_time, status_text):
     global running, boats_joined
     while running and boats_joined < join_limit:
         boats = find_boats()
         if len(boats) > 1:
-            join_boats(boats[0], boats[1])
+            join_boats(boats[0], boats[1], status_text)
         time.sleep(delay_time)
     if boats_joined >= join_limit:
-        messagebox.showinfo("Info", f"Boat joining limit of {join_limit} reached")
+        status_text.insert(tk.END, f"Boat joining limit of {join_limit} reached\n")
 
 # Function to start the script interactively
 def start_script_interactive():
@@ -85,11 +95,23 @@ def start_script_interactive():
         return  # User canceled
     
     join_limit = limit
-    connect_to_minecraft(ip, port)
-    running = True
-    boats_joined = 0
-    threading.Thread(target=run_boat_joining, args=(delay,)).start()
-    messagebox.showinfo("Info", "Boat joining started")
+
+    # Create main window for status display
+    root = tk.Tk()
+    root.title("Minecraft Boat Joiner Status")
+    
+    # Create scrolled text widget to display status and errors
+    status_text = scrolledtext.ScrolledText(root, width=60, height=20, wrap=tk.WORD)
+    status_text.pack(padx=10, pady=10)
+
+    # Connect to Minecraft server and start boat joining process
+    connect_to_minecraft(ip, port, status_text)
+    if mc is not None:
+        running = True
+        boats_joined = 0
+        threading.Thread(target=run_boat_joining, args=(delay, status_text)).start()
+    
+    root.mainloop()
 
 # Function to stop the script
 def stop_script():
@@ -105,4 +127,3 @@ def main():
 # Check if the script is run as main module
 if __name__ == "__main__":
     main()
-
