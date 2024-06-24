@@ -1,6 +1,6 @@
 import argparse
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import simpledialog, messagebox
 from mcpi.minecraft import Minecraft
 import time
 import threading
@@ -17,14 +17,14 @@ boats_joined = 0
 def generate_random_name():
     return ''.join(random.choices(string.ascii_letters + string.digits, k=8))
 
-# Function to connect to Minecraft
+# Function to connect to Minecraft using a specific IP address
 def connect_to_minecraft(ip, port):
     global mc
     try:
-        mc = Minecraft.create(ip, int(port))
-        messagebox.showinfo("Info", "Connected to Minecraft server")
+        mc = Minecraft.create(ip, port)
+        messagebox.showinfo("Info", f"Connected to Minecraft server at {ip}:{port}")
     except Exception as e:
-        messagebox.showerror("Error", f"Failed to connect to Minecraft server: {e}")
+        messagebox.showerror("Error", f"Failed to connect to Minecraft server at {ip}:{port}: {e}")
 
 # Function to find boats
 def find_boats():
@@ -60,9 +60,30 @@ def run_boat_joining(delay_time):
     if boats_joined >= join_limit:
         messagebox.showinfo("Info", f"Boat joining limit of {join_limit} reached")
 
-# Function to start the script
-def start_script(ip, port, limit, delay):
+# Function to start the script interactively
+def start_script_interactive():
     global running, boats_joined, join_limit
+
+    # Prompt user for Minecraft server IP
+    ip = simpledialog.askstring("Input", "Enter Minecraft server IP address:")
+    if ip is None:
+        return  # User canceled
+    
+    # Prompt user for port
+    port = simpledialog.askinteger("Input", "Enter Minecraft server port:")
+    if port is None:
+        return  # User canceled
+    
+    # Prompt user for delay time
+    delay = simpledialog.askfloat("Input", "Enter delay time between boat join attempts (seconds):", minvalue=0.1, initialvalue=1.0)
+    if delay is None:
+        return  # User canceled
+    
+    # Prompt user for boat join limit
+    limit = simpledialog.askinteger("Input", "Enter boat join limit:")
+    if limit is None:
+        return  # User canceled
+    
     join_limit = limit
     connect_to_minecraft(ip, port)
     running = True
@@ -76,20 +97,12 @@ def stop_script():
     running = False
     messagebox.showinfo("Info", "Boat joining stopped")
 
-# Command-line argument parser setup
-def parse_arguments():
-    parser = argparse.ArgumentParser(description="Minecraft Boat Joiner with delay option")
-    parser.add_argument("ip", type=str, help="Minecraft server IP address")
-    parser.add_argument("port", type=int, help="Minecraft server port")
-    parser.add_argument("limit", type=int, help="Join limit for boat joining")
-    parser.add_argument("--delay", type=float, default=1.0, help="Delay time between boat join attempts (default: 1.0)")
-    return parser.parse_args()
-
 # Main function to handle command-line execution
 def main():
-    args = parse_arguments()
-    start_script(args.ip, args.port, args.limit, args.delay)
+    # Run the script interactively
+    start_script_interactive()
 
 # Check if the script is run as main module
 if __name__ == "__main__":
     main()
+
