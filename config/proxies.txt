@@ -1,9 +1,2 @@
-{
-    "proxies": "http",
-    "webhook": {
-        "url": "",
-        "username": "Nitro Generator",
-        "avatar": ""
-    },
-    "thread": "10"
-}
+123.456.789.0:8080
+234.567.890.1:8080
