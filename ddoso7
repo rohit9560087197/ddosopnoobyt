@@ -5,10 +5,15 @@ import threading
 import json
 import time
 from tkinter import Tk, Label, Entry, Button, scrolledtext, filedialog
+import urllib3
+
+# Disable SSL warnings (not recommended for production use)
+urllib3.disable_warnings()
 
 # Global variables
 generation_running = False
 console_lock = threading.Lock()
+current_proxy = None
 
 # Ensure required directories and files exist
 os.makedirs('config', exist_ok=True)
@@ -40,55 +45,66 @@ class Console():
 class Worker():
     def __init__(self):
         self.proxies = []
+        self.proxy_index = 0  # To keep track of the current proxy index
 
     def load_proxies_from_file(self, filename):
         with open(filename, 'r') as f:
             self.proxies = [line.strip() for line in f]
 
-    def random_proxy(self):
-        return random.choice(self.proxies) if self.proxies else None
+    def get_next_proxy(self):
+        if not self.proxies:
+            return None
+        self.proxy_index = (self.proxy_index + 1) % len(self.proxies)
+        return self.proxies[self.proxy_index]
 
-    def run(self):
-        global generation_running
+    def run_with_proxy(self):
+        global generation_running, current_proxy
         while generation_running:
             self.code = "".join(random.choice("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890") for _ in range(16))
             try:
-                proxies = self.random_proxy()
-                proxy_dict = {'http': 'http://' + proxies, 'https': 'https://' + proxies} if proxies else None
-                req = requests.get(
-                    f'https://discordapp.com/api/v6/entitlements/gift-codes/{self.code}?with_application=false&with_subscription_plan=true',
-                    proxies=proxy_dict,
-                    timeout=10  # Increase timeout to 10 seconds
-                )
-                if req.status_code == 200:
-                    Console().printer("Valid", self.code)
-                    with open('results/hit.txt', 'a+') as f:
-                        f.write(self.code + "\n")
-                    try:
-                        webhook_url = webhook_entry.get().strip()
-                        if webhook_url:
-                            response = requests.post(
-                                webhook_url,
-                                json={"content": f"||@here|| **__New Valid Nitro !!__**\n\nhttps://discord.gift/{self.code}",
-                                      "username": "Nitro Generator",
-                                      "avatar_url": ""}
-                            )
-                            if response.status_code != 204:  # 204 No Content is the expected response for a successful request
-                                output_text.insert('end', f"Failed to send to webhook: {response.status_code} {response.text}\n")
+                proxies = current_proxy or self.get_next_proxy()
+                if proxies:
+                    proxy_dict = {'http': 'http://' + proxies, 'https': 'https://' + proxies}
+                    req = requests.get(
+                        f'https://discordapp.com/api/v6/entitlements/gift-codes/{self.code}?with_application=false&with_subscription_plan=true',
+                        proxies=proxy_dict,
+                        timeout=10,  # Increase timeout to 10 seconds
+                        verify=False  # Disable SSL verification
+                    )
+                    if req.status_code == 200:
+                        Console().printer("Valid", self.code)
+                        with open('results/hit.txt', 'a+') as f:
+                            f.write(self.code + "\n")
+                        try:
+                            webhook_url = webhook_entry.get().strip()
+                            if webhook_url:
+                                response = requests.post(
+                                    webhook_url,
+                                    json={"content": f"||@here|| **__New Valid Nitro !!__**\n\nhttps://discord.gift/{self.code}",
+                                          "username": "Nitro Generator",
+                                          "avatar_url": ""}
+                                )
+                                if response.status_code != 204:  # 204 No Content is the expected response for a successful request
+                                    output_text.insert('end', f"Failed to send to webhook: {response.status_code} {response.text}\n")
+                                    output_text.see('end')
+                            else:
+                                output_text.insert('end', "Webhook URL is empty.\n")
                                 output_text.see('end')
-                        else:
-                            output_text.insert('end', "Webhook URL is empty.\n")
+                        except Exception as e:
+                            output_text.insert('end', f"Exception when sending to webhook: {str(e)}\n")
                             output_text.see('end')
-                    except Exception as e:
-                        output_text.insert('end', f"Exception when sending to webhook: {str(e)}\n")
-                        output_text.see('end')
-                elif req.status_code == 404:
-                    Console().printer("Invalid", self.code)
-                elif req.status_code == 429:
-                    Console().printer("RTlimit", self.code)
-                    time.sleep(int(delay_entry.get()))
+                    elif req.status_code == 404:
+                        Console().printer("Invalid", self.code)
+                    elif req.status_code == 429:
+                        Console().printer("RTlimit", self.code)
+                        time.sleep(int(delay_entry.get()))
+                    else:
+                        Console().printer("Retry", self.code)
                 else:
-                    Console().printer("Retry", self.code)
+                    Console().printer("NoProxy", self.code)
+                    output_text.insert('end', "No proxy available.\n")
+                    output_text.see('end')
+                    time.sleep(5)  # Wait for 5 seconds before retrying when no proxy available
             except requests.exceptions.ProxyError:
                 Console().printer("ProxyError", self.code)
                 output_text.insert('end', f"Failed to connect to proxy.\n")
@@ -112,7 +128,7 @@ def start_generation():
     global generation_running
     if not generation_running:
         generation_running = True
-        threading.Thread(target=DNG.run).start()
+        threading.Thread(target=DNG.run_with_proxy).start()
         status_label.config(text="Message generation started...", fg="blue")
 
 def stop_generation():
