@@ -8,7 +8,7 @@ import random
 # Global variables
 mc = None
 running = False
-boats_joined = 0
+bots_joined = 0
 bots_limit = 10  # Example value, adjust as needed
 delay_time = 2.0  # Example value, adjust as needed
 
@@ -21,22 +21,22 @@ def generate_random_bot_ip():
 
 # Function to join a server with a unique name
 def join_server(server_ip, server_port):
-    global boats_joined
+    global bots_joined
     try:
         bot_ip = generate_random_bot_ip()
-        name = f"bot-{boats_joined + 1}-{bot_ip.replace(':', '')}"
+        name = f"bot-{bots_joined + 1}-{bot_ip.replace(':', '')}"
         mc = Minecraft.create(server_ip, server_port)
         mc.postToChat(f"Joining as {name}")  # Display name in Minecraft chat
         time.sleep(5)  # Simulate connection time
-        mc.conn.close()  # Close the connection
-        boats_joined += 1
+        # No need to close the connection explicitly for Minecraft.create()
+        bots_joined += 1
         append_to_status(f"Joined server {server_ip}:{server_port} as {name}")
     except Exception as e:
         append_to_status(f"Error joining server {server_ip}:{server_port}: {e}")
 
 # Function to start joining servers
 def start_joining_servers(server_ip, server_port):
-    global running, boats_joined
+    global running, bots_joined
     running = True
     for _ in range(bots_limit):
         if not running:
@@ -96,15 +96,15 @@ def append_to_status(message):
 
 # Function to update status label with real-time information
 def update_status_label():
-    global boats_joined, bots_limit
-    status_var.set(f"Bots joined: {boats_joined}/{bots_limit}")
+    global bots_joined, bots_limit
+    status_var.set(f"Bots joined: {bots_joined}/{bots_limit}")
     root.after(1000, update_status_label)  # Update every 1 second
 
 # Function to update progress bar
 def update_progress_bar():
-    global boats_joined, bots_limit
+    global bots_joined, bots_limit
     if bots_limit > 0:
-        progress_bar["value"] = boats_joined * 100 / bots_limit
+        progress_bar["value"] = bots_joined * 100 / bots_limit
     root.after(1000, update_progress_bar)  # Update every 1 second
 
 # Main function to handle command-line execution
