@@ -1,4 +1,3 @@
-import argparse
 import tkinter as tk
 from tkinter import simpledialog, messagebox, scrolledtext
 from mcpi.minecraft import Minecraft
@@ -28,12 +27,13 @@ def connect_to_minecraft(ip, port, status_text):
         messagebox.showerror("Error", f"Failed to connect to Minecraft server at {ip}:{port}: {e}")
 
 # Function to find boats
-def find_boats():
+def find_boats(status_text):
     try:
         entities = mc.getEntities()
         boats = [entity for entity in entities if entity["type"] == "Boat"]
         return boats
     except Exception as e:
+        status_text.insert(tk.END, f"Error finding boats: {e}\n")
         print(f"Error finding boats: {e}")
         return []
 
@@ -60,69 +60,73 @@ def join_boats(boat1, boat2, status_text):
         print(f"Error joining boats: {e}")
 
 # Function to run the boat joining logic
-def run_boat_joining(delay_time, status_text):
+def run_boat_joining(ip, port, limit, delay_time, status_text):
     global running, boats_joined
-    while running and boats_joined < join_limit:
-        boats = find_boats()
-        if len(boats) > 1:
-            join_boats(boats[0], boats[1], status_text)
-        time.sleep(delay_time)
-    if boats_joined >= join_limit:
-        status_text.insert(tk.END, f"Boat joining limit of {join_limit} reached\n")
+    try:
+        mc = Minecraft.create(ip, port)
+        status_text.insert(tk.END, f"Connected to Minecraft server at {ip}:{port}\n")
+        while running and boats_joined < limit:
+            boats = find_boats(status_text)
+            if len(boats) > 1:
+                join_boats(boats[0], boats[1], status_text)
+            time.sleep(delay_time)
+        if boats_joined >= limit:
+            status_text.insert(tk.END, f"Boat joining limit of {limit} reached\n")
+    except Exception as e:
+        status_text.insert(tk.END, f"Error connecting to Minecraft server: {e}\n")
+        print(f"Error connecting to Minecraft server: {e}")
+        messagebox.showerror("Error", f"Failed to connect to Minecraft server: {e}")
 
-# Function to start the script interactively
-def start_script_interactive():
-    global running, boats_joined, join_limit
-
-    # Prompt user for Minecraft server IP
-    ip = simpledialog.askstring("Input", "Enter Minecraft server IP address:")
-    if ip is None:
-        return  # User canceled
-    
-    # Prompt user for port
-    port = simpledialog.askinteger("Input", "Enter Minecraft server port:")
-    if port is None:
-        return  # User canceled
-    
-    # Prompt user for delay time
-    delay = simpledialog.askfloat("Input", "Enter delay time between boat join attempts (seconds):", minvalue=0.1, initialvalue=1.0)
-    if delay is None:
-        return  # User canceled
-    
-    # Prompt user for boat join limit
-    limit = simpledialog.askinteger("Input", "Enter boat join limit:")
-    if limit is None:
-        return  # User canceled
-    
-    join_limit = limit
-
-    # Create main window for status display
-    root = tk.Tk()
-    root.title("Minecraft Boat Joiner Status")
-    
-    # Create scrolled text widget to display status and errors
-    status_text = scrolledtext.ScrolledText(root, width=60, height=20, wrap=tk.WORD)
-    status_text.pack(padx=10, pady=10)
-
-    # Connect to Minecraft server and start boat joining process
-    connect_to_minecraft(ip, port, status_text)
-    if mc is not None:
-        running = True
-        boats_joined = 0
-        threading.Thread(target=run_boat_joining, args=(delay, status_text)).start()
-    
-    root.mainloop()
-
-# Function to stop the script
+# Function to stop the boat joining process
 def stop_script():
     global running
     running = False
     messagebox.showinfo("Info", "Boat joining stopped")
 
+# Function to start the script
+def start_script(ip, port, limit, delay):
+    global running, boats_joined
+    running = True
+    boats_joined = 0
+    
+    # Create main window for status display
+    root = tk.Tk()
+    root.title("Minecraft Boat Joiner")
+    
+    # Create scrolled text widget to display status and errors
+    status_text = scrolledtext.ScrolledText(root, width=60, height=20, wrap=tk.WORD)
+    status_text.pack(padx=10, pady=10)
+    
+    # Create "Stop" button
+    stop_button = tk.Button(root, text="Stop", command=stop_script)
+    stop_button.pack(pady=10)
+    
+    # Create thread to run boat joining logic
+    threading.Thread(target=run_boat_joining, args=(ip, port, limit, delay, status_text)).start()
+    
+    root.mainloop()  # Start the tkinter main loop to keep the window open
+
 # Main function to handle command-line execution
 def main():
-    # Run the script interactively
-    start_script_interactive()
+    # Prompt user for input
+    ip = simpledialog.askstring("Input", "Enter Minecraft server IP address:")
+    if ip is None:
+        return  # User canceled
+    
+    port = simpledialog.askinteger("Input", "Enter Minecraft server port:")
+    if port is None:
+        return  # User canceled
+    
+    limit = simpledialog.askinteger("Input", "Enter boat join limit:")
+    if limit is None:
+        return  # User canceled
+    
+    delay = simpledialog.askfloat("Input", "Enter delay time between boat join attempts (seconds):", minvalue=0.1, initialvalue=1.0)
+    if delay is None:
+        return  # User canceled
+    
+    # Start the script with user input
+    start_script(ip, port, limit, delay)
 
 # Check if the script is run as main module
 if __name__ == "__main__":
