@@ -10,8 +10,8 @@ running = False
 boats_joined = 0
 server_ip = ""
 server_port = 0
-bots_limit = 0
-delay_time = 0
+bots_limit = 10  # Example value, should be set based on your use case
+delay_time = 2.0  # Example value, should be set based on your use case
 
 # List to store IP addresses of Minecraft servers to join
 servers_to_join = [
@@ -43,7 +43,8 @@ def update_status_label():
 # Function to update progress bar
 def update_progress_bar():
     global boats_joined, bots_limit
-    progress_bar["value"] = boats_joined * 100 / bots_limit
+    if bots_limit > 0:
+        progress_bar["value"] = boats_joined * 100 / bots_limit
     root.after(1000, update_progress_bar)  # Update every 1 second
 
 # Function to join a single server
@@ -110,7 +111,7 @@ def connect_to_minecraft(ip, port):
 
 # Function to start the main script
 def start_script():
-    global bots_limit, delay_time, boats_joined
+    global boats_limit, delay_time, boats_joined
 
     # Create main window
     global root
