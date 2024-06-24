@@ -8,6 +8,10 @@ import time
 mc = None
 running = False
 boats_joined = 0
+server_ip = ""
+server_port = 0
+bots_limit = 0
+delay_time = 0
 
 # List to store IP addresses of Minecraft servers
 servers_to_join = []
@@ -33,13 +37,35 @@ def read_ips_from_file(file_path):
 
 # Function to handle manual entry of IP addresses
 def manual_ip_entry():
+    global server_ip, server_port
     ip_entry = ip_entry_field.get()
     if ip_entry:
-        servers_to_join.append(ip_entry)
+        server_ip, port_entry = ip_entry.split(":")
+        server_port = int(port_entry)
+        append_to_status(f"Server IP set to: {server_ip}, Port set to: {server_port}")
         ip_entry_field.delete(0, tk.END)  # Clear the entry field
-        append_to_status(f"Manually added IP address: {ip_entry}")
     else:
-        messagebox.showwarning("Warning", "Please enter an IP address.")
+        messagebox.showwarning("Warning", "Please enter an IP address and port.")
+
+# Function to handle bots limit entry
+def set_bots_limit():
+    global bots_limit
+    try:
+        bots_limit = int(bots_limit_entry.get())
+        append_to_status(f"Bots limit set to: {bots_limit}")
+        bots_limit_entry.delete(0, tk.END)  # Clear the entry field
+    except ValueError:
+        messagebox.showwarning("Warning", "Please enter a valid number for bots limit.")
+
+# Function to handle delay time entry
+def set_delay_time():
+    global delay_time
+    try:
+        delay_time = float(delay_entry.get())
+        append_to_status(f"Delay time set to: {delay_time}")
+        delay_entry.delete(0, tk.END)  # Clear the entry field
+    except ValueError:
+        messagebox.showwarning("Warning", "Please enter a valid number for delay time.")
 
 # Function to handle uploading IP addresses from a file
 def upload_ip_file():
@@ -55,14 +81,14 @@ def upload_ip_file():
         append_to_status(error_msg)
 
 # Function to connect to Minecraft
-def connect_to_minecraft(ip, port):
-    global mc
+def connect_to_minecraft():
+    global mc, server_ip, server_port
     try:
-        mc = Minecraft.create(ip, port)
-        append_to_status(f"Connected to Minecraft server at {ip}:{port}")
+        mc = Minecraft.create(server_ip, server_port)
+        append_to_status(f"Connected to Minecraft server at {server_ip}:{server_port}")
         return mc  # Return the Minecraft object
     except Exception as e:
-        error_msg = f"Failed to connect to Minecraft server at {ip}:{port}: {e}"
+        error_msg = f"Failed to connect to Minecraft server at {server_ip}:{server_port}: {e}"
         messagebox.showerror("Error", error_msg)
         append_to_status(error_msg)
         return None  # Return None if connection fails
@@ -72,7 +98,7 @@ def join_server(ip_port):
     global boats_joined
     try:
         ip, port = ip_port.split(":")
-        mc = connect_to_minecraft(ip, int(port))
+        mc = connect_to_minecraft()
         if mc is not None:
             # Implement your bot logic here
             # Example: mc.player.setPos(x, y, z)
@@ -91,7 +117,7 @@ def start_joining_servers():
         if not running:
             break
         join_server(server)
-        time.sleep(2)  # Delay between joining servers (adjust as needed)
+        time.sleep(delay_time)  # Delay between joining servers
     running = False
 
 # Function to stop joining servers
@@ -100,9 +126,55 @@ def stop_script():
     running = False
     append_to_status("Server joining stopped")
 
-# Function to start the script
+# Function to hide the initial screen and start the main script
+def start_main_script():
+    initial_screen.destroy()
+    start_script()
+
+# Function to create the initial screen
+def create_initial_screen():
+    global initial_screen
+    initial_screen = tk.Tk()
+    initial_screen.title("Minecraft Server Joiner")
+
+    start_label = tk.Label(initial_screen, text="Enter the Minecraft server IP and port below:")
+    start_label.pack(pady=10)
+
+    global ip_entry_field
+    ip_entry_field = tk.Entry(initial_screen, width=40)
+    ip_entry_field.pack()
+
+    start_button = tk.Button(initial_screen, text="Set IP and Port", width=15, command=manual_ip_entry)
+    start_button.pack(pady=5)
+
+    bots_limit_label = tk.Label(initial_screen, text="Enter bots limit:")
+    bots_limit_label.pack(pady=5)
+
+    global bots_limit_entry
+    bots_limit_entry = tk.Entry(initial_screen, width=10)
+    bots_limit_entry.pack()
+
+    bots_limit_button = tk.Button(initial_screen, text="Set Bots Limit", width=15, command=set_bots_limit)
+    bots_limit_button.pack(pady=5)
+
+    delay_label = tk.Label(initial_screen, text="Enter delay time (in seconds):")
+    delay_label.pack(pady=5)
+
+    global delay_entry
+    delay_entry = tk.Entry(initial_screen, width=10)
+    delay_entry.pack()
+
+    delay_button = tk.Button(initial_screen, text="Set Delay Time", width=15, command=set_delay_time)
+    delay_button.pack(pady=5)
+
+    start_main_button = tk.Button(initial_screen, text="Start Script", width=15, command=start_main_script)
+    start_main_button.pack(pady=10)
+
+    initial_screen.mainloop()
+
+# Function to start the main script
 def start_script():
-    global running, boats_joined
+    global running, boats_joined, bots_limit, delay_time
     running = True
     
     # Create main window for status display
@@ -115,16 +187,9 @@ def start_script():
     status_text.pack(padx=10, pady=10)
     status_text.configure(state='disabled')  # Make it read-only
     
-    # Create manual IP entry widgets
-    ip_entry_label = tk.Label(root, text="Enter IP address:")
-    ip_entry_label.pack()
-    
-    global ip_entry_field
-    ip_entry_field = tk.Entry(root, width=40)
-    ip_entry_field.pack()
-    
-    add_ip_button = tk.Button(root, text="Add IP Manually", command=manual_ip_entry)
-    add_ip_button.pack(pady=5)
+    # Display bots limit and delay time settings
+    append_to_status(f"Bots limit set to: {bots_limit}")
+    append_to_status(f"Delay time set to: {delay_time} seconds")
     
     # Create "Upload IP File" button
     upload_button = tk.Button(root, text="Upload IP File", command=upload_ip_file)
@@ -141,7 +206,7 @@ def start_script():
 
 # Main function to handle command-line execution
 def main():
-    start_script()
+    create_initial_screen()
 
 # Check if the script is run as main module
 if __name__ == "__main__":
