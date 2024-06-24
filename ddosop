@@ -1,0 +1,95 @@
+import argparse
+import tkinter as tk
+from tkinter import messagebox
+from mcpi.minecraft import Minecraft
+import time
+import threading
+import random
+import string
+
+# Global variables
+running = False
+mc = None
+join_limit = 0
+boats_joined = 0
+
+# Function to generate a random name
+def generate_random_name():
+    return ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+
+# Function to connect to Minecraft
+def connect_to_minecraft(ip, port):
+    global mc
+    try:
+        mc = Minecraft.create(ip, int(port))
+        messagebox.showinfo("Info", "Connected to Minecraft server")
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to connect to Minecraft server: {e}")
+
+# Function to find boats
+def find_boats():
+    entities = mc.getEntities()
+    boats = [entity for entity in entities if entity["type"] == "Boat"]
+    return boats
+
+# Function to join boats and rename them
+def join_boats(boat1, boat2):
+    global boats_joined
+    x1, y1, z1 = boat1["pos"]["x"], boat1["pos"]["y"], boat1["pos"]["z"]
+    x2, y2, z2 = boat2["pos"]["x"], boat2["pos"]["y"], boat2["pos"]["z"]
+
+    # Teleport boat1 to boat2 position
+    mc.entity.setPos(boat1["id"], x2, y2, z2)
+    
+    # Rename the boats with random names
+    random_name1 = generate_random_name()
+    random_name2 = generate_random_name()
+    mc.entity.setCustomName(boat1["id"], random_name1)
+    mc.entity.setCustomName(boat2["id"], random_name2)
+    
+    boats_joined += 1
+
+# Function to run the boat joining logic
+def run_boat_joining(delay_time):
+    global running, boats_joined
+    while running and boats_joined < join_limit:
+        boats = find_boats()
+        if len(boats) > 1:
+            join_boats(boats[0], boats[1])
+        time.sleep(delay_time)
+    if boats_joined >= join_limit:
+        messagebox.showinfo("Info", f"Boat joining limit of {join_limit} reached")
+
+# Function to start the script
+def start_script(ip, port, limit, delay):
+    global running, boats_joined, join_limit
+    join_limit = limit
+    connect_to_minecraft(ip, port)
+    running = True
+    boats_joined = 0
+    threading.Thread(target=run_boat_joining, args=(delay,)).start()
+    messagebox.showinfo("Info", "Boat joining started")
+
+# Function to stop the script
+def stop_script():
+    global running
+    running = False
+    messagebox.showinfo("Info", "Boat joining stopped")
+
+# Command-line argument parser setup
+def parse_arguments():
+    parser = argparse.ArgumentParser(description="Minecraft Boat Joiner with delay option")
+    parser.add_argument("ip", type=str, help="Minecraft server IP address")
+    parser.add_argument("port", type=int, help="Minecraft server port")
+    parser.add_argument("limit", type=int, help="Join limit for boat joining")
+    parser.add_argument("--delay", type=float, default=1.0, help="Delay time between boat join attempts (default: 1.0)")
+    return parser.parse_args()
+
+# Main function to handle command-line execution
+def main():
+    args = parse_arguments()
+    start_script(args.ip, args.port, args.limit, args.delay)
+
+# Check if the script is run as main module
+if __name__ == "__main__":
+    main()
