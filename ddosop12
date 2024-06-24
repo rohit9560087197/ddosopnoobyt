@@ -55,30 +55,14 @@ def set_delay_time():
     except ValueError:
         messagebox.showwarning("Warning", "Please enter a valid number for delay time.")
 
-# Function to read IP addresses from a text file
-def read_ips_from_file(file_path):
-    try:
-        with open(file_path, 'r') as file:
-            ip_addresses = [line.strip() for line in file.readlines() if line.strip()]
-            return ip_addresses
-    except Exception as e:
-        error_msg = f"Error reading file {file_path}: {e}"
-        messagebox.showerror("Error", error_msg)
-        append_to_status(error_msg)
-        return []
-
-# Function to handle uploading IP addresses from a file
+# Function to upload IP addresses from a text file
 def upload_ip_file():
-    try:
-        file_path = filedialog.askopenfilename(filetypes=[("Text files", "*.txt")])
-        if file_path:
-            ips = read_ips_from_file(file_path)
-            servers_to_join.extend(ips)
-            append_to_status(f"Uploaded {len(ips)} IP addresses from {file_path}")
-    except Exception as e:
-        error_msg = f"Error uploading file: {e}"
-        messagebox.showerror("Error", error_msg)
-        append_to_status(error_msg)
+    global servers_to_join
+    file_path = filedialog.askopenfilename(filetypes=[("Text files", "*.txt")])
+    if file_path:
+        with open(file_path, 'r') as file:
+            servers_to_join = file.read().strip().split('\n')
+        append_to_status(f"Uploaded {len(servers_to_join)} IP addresses from file: {file_path}")
 
 # Function to connect to Minecraft
 def connect_to_minecraft():
@@ -121,10 +105,23 @@ def start_joining_servers():
     running = False
 
 # Function to stop joining servers
-def stop_script():
+def stop_joining():
     global running
     running = False
-    append_to_status("Server joining stopped")
+    stop_screen.destroy()  # Close the stop screen
+    create_initial_screen()  # Go back to the initial setup screen
+
+# Function to show the stop screen
+def show_stop_screen():
+    global stop_screen
+    stop_screen = tk.Toplevel()
+    stop_screen.title("Stop Joining Servers")
+
+    stop_label = tk.Label(stop_screen, text="Server joining in progress.")
+    stop_label.pack(padx=10, pady=10)
+
+    stop_button = tk.Button(stop_screen, text="Stop Joining", width=15, command=stop_joining)
+    stop_button.pack(pady=10)
 
 # Function to hide the initial screen and start the main script
 def start_main_script():
@@ -175,7 +172,7 @@ def create_initial_screen():
     delay_button.pack(pady=5)
 
     # Upload IP file button
-    upload_button = tk.Button(initial_screen, text="Upload IP File", width=15, command=upload_ip_file)
+    upload_button = tk.Button(initial_screen, text="Upload IP File", command=upload_ip_file)
     upload_button.pack(pady=10)
 
     # Start script button
@@ -203,12 +200,8 @@ def start_script():
     append_to_status(f"Bots limit set to: {bots_limit}")
     append_to_status(f"Delay time set to: {delay_time} seconds")
     
-    # Create "Upload IP File" button
-    upload_button = tk.Button(root, text="Upload IP File", command=upload_ip_file)
-    upload_button.pack(pady=10)
-    
     # Create "Stop" button
-    stop_button = tk.Button(root, text="Stop", command=stop_script)
+    stop_button = tk.Button(root, text="Stop Joining", command=show_stop_screen)
     stop_button.pack(pady=10)
     
     # Create thread to start joining servers
