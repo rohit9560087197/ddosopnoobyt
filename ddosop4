@@ -84,6 +84,10 @@ class Worker():
                     time.sleep(int(delay_entry.get()))
                 else:
                     Console().printer("Retry", self.code)
+            except requests.exceptions.ProxyError:
+                Console().printer("ProxyError", self.code)
+                output_text.insert('end', f"Failed to connect to proxy.\n")
+                output_text.see('end')
             except KeyboardInterrupt:
                 with console_lock:
                     output_text.insert('end', "Nitro Gen Stopped by Keyboard Interrupt.\n")
