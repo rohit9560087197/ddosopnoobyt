@@ -4,7 +4,7 @@ import random
 import threading
 import json
 import time
-from tkinter import Tk, Label, Entry, Button, scrolledtext
+from tkinter import Tk, Label, Entry, Button, scrolledtext, filedialog
 
 # Global variables
 generation_running = False
@@ -38,10 +38,15 @@ class Console():
             output_text.see('end')
 
 class Worker():
+    def __init__(self):
+        self.proxies = []
+
+    def load_proxies_from_file(self, filename):
+        with open(filename, 'r') as f:
+            self.proxies = [line.strip() for line in f]
+
     def random_proxy(self):
-        with open('config/proxies.txt', 'r') as f:
-            proxies = [line.strip() for line in f]
-        return random.choice(proxies) if proxies else None
+        return random.choice(self.proxies) if self.proxies else None
 
     def run(self):
         global generation_running
@@ -115,6 +120,14 @@ def stop_generation():
     generation_running = False
     status_label.config(text="Message generation stopped.", fg="orange")
 
+def upload_proxies():
+    filename = filedialog.askopenfilename(initialdir=os.getcwd(), title="Select Proxy File", filetypes=(("Text files", "*.txt"), ("All files", "*.*")))
+    if filename:
+        DNG.load_proxies_from_file(filename)
+        status_label.config(text=f"Loaded {len(DNG.proxies)} proxies from {filename}", fg="green")
+    else:
+        status_label.config(text="Proxy file upload cancelled.", fg="red")
+
 # Create main window
 root = Tk()
 root.title("Discord Nitro Generator")
@@ -133,6 +146,9 @@ Label(root, text="Generated Codes:").pack(pady=5)
 output_text = scrolledtext.ScrolledText(root, width=50, height=10)
 output_text.pack(padx=10, pady=10)
 
+upload_button = Button(root, text="Upload Proxies", command=upload_proxies)
+upload_button.pack(pady=5)
+
 start_button = Button(root, text="Start Generation", command=start_generation)
 start_button.pack(pady=5)
 
@@ -148,4 +164,3 @@ DNG = Worker()
 
 # Start the Tkinter event loop
 root.mainloop()
-
