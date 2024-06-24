@@ -16,16 +16,29 @@ def generate_random_name():
     return ''.join(random.choices(string.ascii_letters + string.digits, k=8))
 
 # Function to connect to Minecraft
-def connect_to_minecraft(ip, port, status_text):
+def connect_to_minecraft(ip, port, status_text, chat_text):
     global mc
     try:
         mc = Minecraft.create(ip, port)
         status_text.insert(tk.END, f"Connected to Minecraft server at {ip}:{port}\n")
+        start_chat_listener(chat_text)  # Start chat listener thread
         return mc  # Return the Minecraft object
     except Exception as e:
         status_text.insert(tk.END, f"Failed to connect to Minecraft server at {ip}:{port}: {e}\n")
         messagebox.showerror("Error", f"Failed to connect to Minecraft server at {ip}:{port}: {e}")
         return None  # Return None if connection fails
+
+# Function to start listening for chat messages
+def start_chat_listener(chat_text):
+    global mc
+    def listen_for_chat():
+        while running:
+            chat_messages = mc.events.pollChatPosts()
+            for message in chat_messages:
+                chat_text.insert(tk.END, f"[{message.entityId}] {message.message}\n")
+            time.sleep(0.1)  # Adjust sleep time as needed
+    
+    threading.Thread(target=listen_for_chat, daemon=True).start()
 
 # Function to find boats
 def find_boats(status_text):
@@ -68,7 +81,7 @@ def join_boats(boat1, boat2, status_text):
 # Function to run the boat joining logic
 def run_boat_joining(ip, port, limit, delay_time, status_text):
     global running, boats_joined
-    mc = connect_to_minecraft(ip, port, status_text)
+    mc = connect_to_minecraft(ip, port, status_text, chat_text)
     if mc is None:
         messagebox.showerror("Error", f"Failed to connect to Minecraft server at {ip}:{port}")
         return
@@ -101,13 +114,21 @@ def start_script(ip, port, limit, delay):
     running = True
     boats_joined = 0
     
-    # Create main window for status display
+    # Create main window for status and chat display
     root = tk.Tk()
     root.title("Minecraft Boat Joiner")
     
-    # Create scrolled text widget to display status and errors
-    status_text = scrolledtext.ScrolledText(root, width=60, height=20, wrap=tk.WORD)
+    # Create scrolled text widget for status updates
+    status_text = scrolledtext.ScrolledText(root, width=60, height=10, wrap=tk.WORD)
     status_text.pack(padx=10, pady=10)
+    
+    # Create label for chat messages
+    chat_label = tk.Label(root, text="Server Chat Messages:")
+    chat_label.pack()
+    
+    # Create scrolled text widget for chat messages
+    chat_text = scrolledtext.ScrolledText(root, width=60, height=10, wrap=tk.WORD)
+    chat_text.pack(padx=10, pady=10)
     
     # Create "Stop" button
     stop_button = tk.Button(root, text="Stop", command=stop_script)
