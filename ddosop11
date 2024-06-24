@@ -12,9 +12,7 @@ server_ip = ""
 server_port = 0
 bots_limit = 0
 delay_time = 0
-
-# List to store IP addresses of Minecraft servers
-servers_to_join = []
+servers_to_join = []  # List to store IP addresses of Minecraft servers
 
 # Function to append messages to the status text widget
 def append_to_status(message):
@@ -23,29 +21,19 @@ def append_to_status(message):
     status_text.configure(state='disabled')
     status_text.see(tk.END)  # Scroll to the end
 
-# Function to read IP addresses from a text file
-def read_ips_from_file(file_path):
-    try:
-        with open(file_path, 'r') as file:
-            ip_addresses = [line.strip() for line in file.readlines() if line.strip()]
-            return ip_addresses
-    except Exception as e:
-        error_msg = f"Error reading file {file_path}: {e}"
-        messagebox.showerror("Error", error_msg)
-        append_to_status(error_msg)
-        return []
-
-# Function to handle manual entry of IP addresses
-def manual_ip_entry():
+# Function to handle manual entry of IP and Port
+def set_ip_and_port():
     global server_ip, server_port
-    ip_entry = ip_entry_field.get()
-    if ip_entry:
-        server_ip, port_entry = ip_entry.split(":")
-        server_port = int(port_entry)
+    ip = ip_entry_field.get()
+    port = port_entry_field.get()
+    if ip and port:
+        server_ip = ip
+        server_port = int(port)
         append_to_status(f"Server IP set to: {server_ip}, Port set to: {server_port}")
-        ip_entry_field.delete(0, tk.END)  # Clear the entry field
+        ip_entry_field.delete(0, tk.END)  # Clear the entry fields
+        port_entry_field.delete(0, tk.END)
     else:
-        messagebox.showwarning("Warning", "Please enter an IP address and port.")
+        messagebox.showwarning("Warning", "Please enter both IP address and port.")
 
 # Function to handle bots limit entry
 def set_bots_limit():
@@ -66,6 +54,18 @@ def set_delay_time():
         delay_entry.delete(0, tk.END)  # Clear the entry field
     except ValueError:
         messagebox.showwarning("Warning", "Please enter a valid number for delay time.")
+
+# Function to read IP addresses from a text file
+def read_ips_from_file(file_path):
+    try:
+        with open(file_path, 'r') as file:
+            ip_addresses = [line.strip() for line in file.readlines() if line.strip()]
+            return ip_addresses
+    except Exception as e:
+        error_msg = f"Error reading file {file_path}: {e}"
+        messagebox.showerror("Error", error_msg)
+        append_to_status(error_msg)
+        return []
 
 # Function to handle uploading IP addresses from a file
 def upload_ip_file():
@@ -128,7 +128,7 @@ def stop_script():
 
 # Function to hide the initial screen and start the main script
 def start_main_script():
-    initial_screen.destroy()
+    initial_screen.destroy()  # Destroy the initial screen
     start_script()
 
 # Function to create the initial screen
@@ -137,15 +137,22 @@ def create_initial_screen():
     initial_screen = tk.Tk()
     initial_screen.title("Minecraft Server Joiner")
 
-    start_label = tk.Label(initial_screen, text="Enter the Minecraft server IP and port below:")
-    start_label.pack(pady=10)
+    ip_label = tk.Label(initial_screen, text="Enter the Minecraft server IP:")
+    ip_label.pack(pady=10)
 
     global ip_entry_field
     ip_entry_field = tk.Entry(initial_screen, width=40)
     ip_entry_field.pack()
 
-    start_button = tk.Button(initial_screen, text="Set IP and Port", width=15, command=manual_ip_entry)
-    start_button.pack(pady=5)
+    port_label = tk.Label(initial_screen, text="Enter the Minecraft server port:")
+    port_label.pack(pady=10)
+
+    global port_entry_field
+    port_entry_field = tk.Entry(initial_screen, width=10)
+    port_entry_field.pack()
+
+    start_button = tk.Button(initial_screen, text="Set IP and Port", width=15, command=set_ip_and_port)
+    start_button.pack(pady=10)
 
     bots_limit_label = tk.Label(initial_screen, text="Enter bots limit:")
     bots_limit_label.pack(pady=5)
@@ -167,6 +174,11 @@ def create_initial_screen():
     delay_button = tk.Button(initial_screen, text="Set Delay Time", width=15, command=set_delay_time)
     delay_button.pack(pady=5)
 
+    # Upload IP file button
+    upload_button = tk.Button(initial_screen, text="Upload IP File", width=15, command=upload_ip_file)
+    upload_button.pack(pady=10)
+
+    # Start script button
     start_main_button = tk.Button(initial_screen, text="Start Script", width=15, command=start_main_script)
     start_main_button.pack(pady=10)
 
