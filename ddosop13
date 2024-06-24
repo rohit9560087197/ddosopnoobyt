@@ -81,7 +81,11 @@ def connect_to_minecraft():
 def join_server(ip_port):
     global boats_joined
     try:
-        ip, port = ip_port.split(":")
+        if ':' in ip_port:
+            ip, port = ip_port.split(":", 1)
+        else:
+            raise ValueError(f"Invalid format for IP and port: {ip_port}")
+
         mc = connect_to_minecraft()
         if mc is not None:
             # Implement your bot logic here
