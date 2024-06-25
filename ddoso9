@@ -65,14 +65,13 @@ def upload_ip_file():
         append_to_status(f"Uploaded {len(servers_to_join)} IP addresses from file: {file_path}")
 
 # Function to connect to Minecraft
-def connect_to_minecraft():
-    global mc, server_ip, server_port
+def connect_to_minecraft(ip, port):
     try:
-        mc = Minecraft.create(server_ip, server_port)
-        append_to_status(f"Connected to Minecraft server at {server_ip}:{server_port}")
+        mc = Minecraft.create(ip, port)
+        append_to_status(f"Connected to Minecraft server at {ip}:{port}")
         return mc  # Return the Minecraft object
     except Exception as e:
-        error_msg = f"Failed to connect to Minecraft server at {server_ip}:{server_port}: {e}"
+        error_msg = f"Failed to connect to Minecraft server at {ip}:{port}: {e}"
         messagebox.showerror("Error", error_msg)
         append_to_status(error_msg)
         return None  # Return None if connection fails
@@ -82,7 +81,7 @@ def join_server(ip_port):
     global boats_joined
     try:
         ip, port = ip_port.split(":")
-        mc = connect_to_minecraft()
+        mc = connect_to_minecraft(ip, port)
         if mc is not None:
             # Implement your bot logic here
             # Example: mc.player.setPos(x, y, z)
@@ -121,98 +120,4 @@ def show_stop_screen():
     stop_label.pack(padx=10, pady=10)
 
     stop_button = tk.Button(stop_screen, text="Stop Joining", width=15, command=stop_joining)
-    stop_button.pack(pady=10)
-
-# Function to hide the initial screen and start the main script
-def start_main_script():
-    initial_screen.destroy()  # Destroy the initial screen
-    start_script()
-
-# Function to create the initial screen
-def create_initial_screen():
-    global initial_screen
-    initial_screen = tk.Tk()
-    initial_screen.title("Minecraft Server Joiner")
-
-    ip_label = tk.Label(initial_screen, text="Enter the Minecraft server IP:")
-    ip_label.pack(pady=10)
-
-    global ip_entry_field
-    ip_entry_field = tk.Entry(initial_screen, width=40)
-    ip_entry_field.pack()
-
-    port_label = tk.Label(initial_screen, text="Enter the Minecraft server port:")
-    port_label.pack(pady=10)
-
-    global port_entry_field
-    port_entry_field = tk.Entry(initial_screen, width=10)
-    port_entry_field.pack()
-
-    start_button = tk.Button(initial_screen, text="Set IP and Port", width=15, command=set_ip_and_port)
-    start_button.pack(pady=10)
-
-    bots_limit_label = tk.Label(initial_screen, text="Enter bots limit:")
-    bots_limit_label.pack(pady=5)
-
-    global bots_limit_entry
-    bots_limit_entry = tk.Entry(initial_screen, width=10)
-    bots_limit_entry.pack()
-
-    bots_limit_button = tk.Button(initial_screen, text="Set Bots Limit", width=15, command=set_bots_limit)
-    bots_limit_button.pack(pady=5)
-
-    delay_label = tk.Label(initial_screen, text="Enter delay time (in seconds):")
-    delay_label.pack(pady=5)
-
-    global delay_entry
-    delay_entry = tk.Entry(initial_screen, width=10)
-    delay_entry.pack()
-
-    delay_button = tk.Button(initial_screen, text="Set Delay Time", width=15, command=set_delay_time)
-    delay_button.pack(pady=5)
-
-    # Upload IP file button
-    upload_button = tk.Button(initial_screen, text="Upload IP File", command=upload_ip_file)
-    upload_button.pack(pady=10)
-
-    # Start script button
-    start_main_button = tk.Button(initial_screen, text="Start Script", width=15, command=start_main_script)
-    start_main_button.pack(pady=10)
-
-    initial_screen.mainloop()
-
-# Function to start the main script
-def start_script():
-    global running, boats_joined, bots_limit, delay_time
-    running = True
-    
-    # Create main window for status display
-    root = tk.Tk()
-    root.title("Minecraft Server Joiner")
-    
-    # Create scrolled text widget for status updates
-    global status_text
-    status_text = scrolledtext.ScrolledText(root, width=60, height=10, wrap=tk.WORD)
-    status_text.pack(padx=10, pady=10)
-    status_text.configure(state='disabled')  # Make it read-only
-    
-    # Display bots limit and delay time settings
-    append_to_status(f"Bots limit set to: {bots_limit}")
-    append_to_status(f"Delay time set to: {delay_time} seconds")
-    
-    # Create "Stop" button
-    stop_button = tk.Button(root, text="Stop Joining", command=show_stop_screen)
-    stop_button.pack(pady=10)
-    
-    # Create thread to start joining servers
-    threading.Thread(target=start_joining_servers).start()
-    
-    root.mainloop()  # Start the tkinter main loop to keep the window open
-
-# Main function to handle command-line execution
-def main():
-    create_initial_screen()
-
-# Check if the script is run as main module
-if __name__ == "__main__":
-    main()
+    stop_button.pack(pady
